@@ -1,0 +1,7 @@
+[package]
+name = "rvibra"
+version = "0.1.0"
+authors = ["PhazzaT <piodul@op.pl>"]
+
+[dependencies]
+image = "*"
