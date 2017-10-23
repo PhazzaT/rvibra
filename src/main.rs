@@ -8,27 +8,6 @@ mod processing;
 
 // Some functionality is based on ColorThief's behavior
 
-
-
-// Partitions by given predicate. Elements which evaluate
-// to false are put before those which evaluate to true.
-// Returns the size of the "false" range.
-// fn partition_by<'a, T, F>(arr: &'a mut [T], f: F) -> usize
-//         where F: Fn(&T) -> bool {
-//     let mut begin = 0;
-//     let mut end = 0;
-//     while end < arr.len() {
-//         if !f(&arr[end]) {
-//             arr.swap(begin, end);
-//             begin += 1;
-//         }
-//         end += 1;
-//     }
-//     begin
-// }
-
-
-
 fn load_pixels<'a>(path: &OsString) -> Box<[[u8; 3]]> {
     image::open(&Path::new(path))
         .unwrap()
