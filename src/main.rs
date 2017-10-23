@@ -14,6 +14,7 @@ fn load_pixels<'a>(path: &OsString) -> Box<[[u8; 3]]> {
         .to_rgb()
         .pixels()
         .filter(|px| px[0] <= 250 || px[1] <= 250 || px[2] <= 250)
+        .filter(|px| px[0] >= 5 || px[1] >= 5 || px[2] >= 5)
         .map(|px| [px[0], px[1], px[2]])
         .collect::<Vec<[u8; 3]>>()
         .into_boxed_slice()

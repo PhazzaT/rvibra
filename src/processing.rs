@@ -29,7 +29,7 @@ fn to_rgb555(color: Color) -> Color {
 }
 
 fn to_rgb888(color: Color) -> Color {
-    let promote = |x| (x << 3) | (x >> 2);
+    let promote = |x| (x << 3) | (1 << 2) as u8;
     [promote(color[0]), promote(color[1]), promote(color[2])]
 }
 
