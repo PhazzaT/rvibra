@@ -66,9 +66,8 @@ pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
     }).collect::<Vec<_>>();
 
     let mut difference: Option<f64> = None;
-    const LIMIT: f64 = 0.25;
     let mut iterations = 0;
-    while difference.map_or(true, |d| d > LIMIT) {
+    while difference.map_or(true, |d| d != 0f64) {
         // Compute centroids
         for px in pixels.iter() {
             // Find the closest cluster
