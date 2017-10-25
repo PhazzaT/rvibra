@@ -6,6 +6,7 @@ use std::path::Path;
 
 // mod processing;
 mod kmeans;
+mod iter_utils;
 
 // Some functionality is based on ColorThief's behavior
 

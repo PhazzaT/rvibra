@@ -1,3 +1,5 @@
+use iter_utils::*;
+
 type PixelRegion<'a> = &'a mut [[u8; 3]];
 type Color = [u8; 3];
 type Center = [f64; 3];
@@ -27,12 +29,29 @@ fn center_distance(c1: Center, c2: Center) -> f64 {
 
 fn initialize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
         -> Vec<Center> {
-    // Dunno, arbitrary values
-    (0..max_color_count).into_iter().map(|i| {
-        let position = (2 * i + 1) * pixels.len() / (2 * max_color_count);
-        let px = pixels[position];
-        [px[0] as f64, px[1] as f64, px[2] as f64]
-    }).collect()
+    // K-means++, but instead of randomly choosing,
+    // take the most distant color in each iteration
+    let mut centers = Vec::with_capacity(max_color_count);
+
+    eprintln!("Choosing starting center 0...");
+    centers.push({
+        let mut acc = [0f64; 3];
+        for px in pixels.iter() {
+            for i in 0..3 { acc[i] += px[i] as f64; }
+        }
+        for i in 0..3 { acc[i] /= max_color_count as f64; }
+        acc
+    });
+
+    for i in 1..max_color_count {
+        eprintln!("Choosing starting center {}...", i);
+        let new = max_by_key_partial(pixels.iter(), |px| {
+            max_partial(centers.iter().map(|c| distance(*c, **px)))
+        }).unwrap();
+        centers.push([new[0] as f64, new[1] as f64, new[2] as f64]);
+    }
+
+    centers
 }
 
 pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
@@ -53,19 +72,9 @@ pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
         // Compute centroids
         for px in pixels.iter() {
             // Find the closest cluster
-            let closest = {
-                let mut iter = clusters.iter_mut();
-                let mut closest = iter.next().unwrap();
-                let mut cl_distance = distance(closest.mean, *px);
-                for c in iter {
-                    let new_distance = distance(c.mean, *px);
-                    if cl_distance > new_distance {
-                        cl_distance = new_distance;
-                        closest = c;
-                    }
-                }
-                closest
-            };
+            let closest = min_by_key_partial(clusters.iter_mut(), |c| {
+                distance(c.mean, *px)
+            }).unwrap();
             for i in 0..3 {
                 closest.centroid[i] += px[i] as f64;
             }
