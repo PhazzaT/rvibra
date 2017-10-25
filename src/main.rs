@@ -4,7 +4,8 @@ use std::env::args_os;
 use std::ffi::OsString;
 use std::path::Path;
 
-mod processing;
+// mod processing;
+mod kmeans;
 
 // Some functionality is based on ColorThief's behavior
 
@@ -30,7 +31,8 @@ fn main() {
         .unwrap().parse::<usize>()
         .unwrap();
     let mut img = load_pixels(&path);
-    let colors = processing::quantize(&mut img, color_count);
+    // let colors = processing::quantize(&mut img, color_count);
+    let colors = kmeans::quantize(&mut img, color_count);
 
     for color in colors.iter() {
         println!("{} {} {}", color[0], color[1], color[2]);
