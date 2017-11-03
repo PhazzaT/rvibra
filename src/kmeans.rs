@@ -1,10 +1,12 @@
 use float_ord::*;
+use rayon::prelude::*;
+use rayon;
 
 type PixelRegion<'a> = &'a mut [[u8; 3]];
 type Color = [u8; 3];
 type Center = [f64; 3];
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Cluster {
     centroid: Center,
     mean: Center,
@@ -35,23 +37,54 @@ fn initialize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
 
     eprintln!("Choosing starting center 0...");
     centers.push({
-        let mut acc = [0f64; 3];
-        for px in pixels.iter() {
-            for i in 0..3 { acc[i] += px[i] as f64; }
-        }
+        let mut acc = pixels.par_iter()
+            .map(|px| [px[0] as f64, px[1] as f64, px[2] as f64])
+            .reduce(|| [0f64; 3], |a, b| {
+                [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+            });
         for i in 0..3 { acc[i] /= max_color_count as f64; }
         acc
     });
 
     for i in 1..max_color_count {
         eprintln!("Choosing starting center {}...", i);
-        let new = pixels.iter().max_by_key(|px| {
+        let new = pixels.par_iter().max_by_key(|px| {
             centers.iter().map(|c| distance(*c, **px)).max()
         }).unwrap();
         centers.push([new[0] as f64, new[1] as f64, new[2] as f64]);
     }
 
     centers
+}
+
+fn compute_centroids(mut clusters: Vec<Cluster>, slice: &[[u8; 3]])
+        -> Vec<Cluster> {
+    
+    const SEQUENTIAL_BLOCK_SIZE: usize = 1024;
+    if slice.len() <= SEQUENTIAL_BLOCK_SIZE {
+        for px in slice {
+            let closest = clusters.iter_mut().min_by_key(|c| {
+                distance(c.mean, *px)
+            }).unwrap();
+            for i in 0..3 {
+                closest.centroid[i] += px[i] as f64;
+            }
+            closest.size += 1;
+        }
+    } else {
+        let (sa, sb) = slice.split_at(slice.len() / 2);
+        let (ca, cb) = rayon::join(
+            || compute_centroids(clusters.clone(), sa),
+            || compute_centroids(clusters.clone(), sb)
+        );
+        for i in 0..clusters.len() {
+            for j in 0..3 {
+                clusters[i].centroid[j] = ca[i].centroid[j] + cb[i].centroid[j];
+            }
+            clusters[i].size = ca[i].size + cb[i].size;
+        }
+    }
+    clusters
 }
 
 pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
@@ -69,16 +102,7 @@ pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
     let mut iterations = 0;
     while difference.map_or(true, |d| d != 0f64) {
         // Compute centroids
-        for px in pixels.iter() {
-            // Find the closest cluster
-            let closest = clusters.iter_mut().min_by_key(|c| {
-                distance(c.mean, *px)
-            }).unwrap();
-            for i in 0..3 {
-                closest.centroid[i] += px[i] as f64;
-            }
-            closest.size += 1;
-        }
+        clusters = compute_centroids(clusters, pixels);
 
         // Move means to centroids
         let mut biggest_movement = 0.0;

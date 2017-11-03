@@ -1,4 +1,5 @@
 extern crate image;
+extern crate rayon;
 
 use std::env::args_os;
 use std::ffi::OsString;
