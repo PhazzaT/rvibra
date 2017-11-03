@@ -1,4 +1,4 @@
-use iter_utils::*;
+use float_ord::*;
 
 type PixelRegion<'a> = &'a mut [[u8; 3]];
 type Color = [u8; 3];
@@ -15,16 +15,16 @@ fn sqr(x: f64) -> f64 {
     x * x
 }
 
-fn distance(fc: Center, c: Color) -> f64 {
-    sqr(fc[0] - c[0] as f64)
-    + sqr(fc[1] - c[1] as f64)
-    + sqr(fc[2] - c[2] as f64)
+fn distance(fc: Center, c: Color) -> FloatOrd<f64> {
+    FloatOrd(sqr(fc[0] - c[0] as f64)
+            + sqr(fc[1] - c[1] as f64)
+            + sqr(fc[2] - c[2] as f64))
 }
 
-fn center_distance(c1: Center, c2: Center) -> f64 {
-    sqr(c1[0] - c2[0])
-    + sqr(c1[1] - c2[1])
-    + sqr(c1[2] - c2[2])
+fn center_distance(c1: Center, c2: Center) -> FloatOrd<f64> {
+    FloatOrd(sqr(c1[0] - c2[0])
+            + sqr(c1[1] - c2[1])
+            + sqr(c1[2] - c2[2]))
 }
 
 fn initialize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
@@ -45,8 +45,8 @@ fn initialize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
 
     for i in 1..max_color_count {
         eprintln!("Choosing starting center {}...", i);
-        let new = max_by_key_partial(pixels.iter(), |px| {
-            max_partial(centers.iter().map(|c| distance(*c, **px)))
+        let new = pixels.iter().max_by_key(|px| {
+            centers.iter().map(|c| distance(*c, **px)).max()
         }).unwrap();
         centers.push([new[0] as f64, new[1] as f64, new[2] as f64]);
     }
@@ -71,7 +71,7 @@ pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
         // Compute centroids
         for px in pixels.iter() {
             // Find the closest cluster
-            let closest = min_by_key_partial(clusters.iter_mut(), |c| {
+            let closest = clusters.iter_mut().min_by_key(|c| {
                 distance(c.mean, *px)
             }).unwrap();
             for i in 0..3 {
@@ -92,8 +92,8 @@ pub fn quantize<'a>(pixels: PixelRegion<'a>, max_color_count: usize)
                 cluster.centroid = [0.0, 0.0, 0.0];
                 cluster.size = 0;
 
-                if biggest_movement < movement {
-                    biggest_movement = movement;
+                if biggest_movement < movement.0 {
+                    biggest_movement = movement.0;
                 }
             }
         }

@@ -7,7 +7,7 @@ use image::RgbImage;
 
 // mod processing;
 mod kmeans;
-mod iter_utils;
+mod float_ord;
 
 // Some functionality is based on ColorThief's behavior
 
